@@ -22,7 +22,7 @@ export default function App() {
                 Go to Sign up
             </Link>
 
-            {/*<Link href="/app/subscriptions/spotify">Spotify Subscriptuion</Link>*/}
+            <Link href="/subscriptions/spotify">Spotify Subscription</Link>
             <Link href={{
                 pathname: "/subscriptions/[id]",
                 params: {id: "claude"}
