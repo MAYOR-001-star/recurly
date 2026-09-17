@@ -2,13 +2,20 @@ import "@/global.css";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useRef, type PropsWithChildren } from "react";
-import { Stack, usePathname } from "expo-router";
+import { Stack, usePathname, useRouter, useSegments } from "expo-router";
 import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, LogBox, View } from "react-native";
 import { colors } from "@/constants/theme";
 import { PostHogProvider, usePostHog } from "posthog-react-native";
 import { posthog } from "@/lib/posthog";
+
+LogBox.ignoreLogs([
+  "Clerk: Clerk has been loaded with development keys",
+  "PostHogFetchNetworkError",
+  "Error while flushing PostHog",
+  "The action 'REPLACE'",
+]);
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -41,9 +48,9 @@ function PostHogIdentity({ children }: PropsWithChildren) {
 
     posthog.identify(user.id, {
       $set: {
-        email: user.primaryEmailAddress?.emailAddress,
-        first_name: user.firstName,
-        last_name: user.lastName,
+        email: user.primaryEmailAddress?.emailAddress ?? null,
+        first_name: user.firstName ?? null,
+        last_name: user.lastName ?? null,
       },
     });
     identifiedUserId.current = user.id;
@@ -60,7 +67,7 @@ function PostHogScreenTracking() {
   useEffect(() => {
     if (previousPathname.current !== pathname) {
       posthog.screen(pathname, {
-        previous_screen: previousPathname.current,
+        previous_screen: previousPathname.current ?? null,
       });
       previousPathname.current = pathname;
     }
@@ -71,6 +78,20 @@ function PostHogScreenTracking() {
 
 function InitialLayout() {
   const { isLoaded, isSignedIn } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (!isSignedIn && !inAuthGroup) {
+      router.replace("/(auth)/sign-in");
+    } else if (isSignedIn && inAuthGroup) {
+      router.replace("/(tabs)");
+    }
+  }, [isSignedIn, isLoaded, segments, router]);
 
   if (!isLoaded) {
     return (
@@ -89,14 +110,10 @@ function InitialLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={Boolean(isSignedIn)}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="subscriptions/[id]" />
-      </Stack.Protected>
-
-      <Stack.Protected guard={!isSignedIn}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="subscriptions/[id]" />
+      <Stack.Screen name="onboarding" />
     </Stack>
   );
 }

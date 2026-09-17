@@ -25,7 +25,8 @@ export const posthog =
   posthogProjectToken && posthogHost
     ? new PostHog(posthogProjectToken, {
         host: posthogHost,
-        debug: __DEV__,
+        flushInterval: 30000,
+        maxBatchSize: 20,
         errorTracking: {
           autocapture: {
             uncaughtExceptions: true,
