@@ -1,12 +1,14 @@
 import "@/global.css";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
-import { Stack } from "expo-router";
-import { ClerkProvider, useAuth } from "@clerk/expo";
+import { useEffect, useRef, type PropsWithChildren } from "react";
+import { Stack, usePathname } from "expo-router";
+import { ClerkProvider, useAuth, useUser } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { ActivityIndicator, View } from "react-native";
 import { colors } from "@/constants/theme";
+import { PostHogProvider, usePostHog } from "posthog-react-native";
+import { posthog } from "@/lib/posthog";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -16,6 +18,55 @@ if (!publishableKey) {
   throw new Error(
     "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in environment variables."
   );
+}
+
+function PostHogIdentity({ children }: PropsWithChildren) {
+  const { isLoaded, user } = useUser();
+  const posthog = usePostHog();
+  const identifiedUserId = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+
+    if (!user) {
+      identifiedUserId.current = undefined;
+      return;
+    }
+
+    if (identifiedUserId.current === user.id) {
+      return;
+    }
+
+    posthog.identify(user.id, {
+      $set: {
+        email: user.primaryEmailAddress?.emailAddress,
+        first_name: user.firstName,
+        last_name: user.lastName,
+      },
+    });
+    identifiedUserId.current = user.id;
+  }, [isLoaded, posthog, user]);
+
+  return children;
+}
+
+function PostHogScreenTracking() {
+  const pathname = usePathname();
+  const posthog = usePostHog();
+  const previousPathname = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (previousPathname.current !== pathname) {
+      posthog.screen(pathname, {
+        previous_screen: previousPathname.current,
+      });
+      previousPathname.current = pathname;
+    }
+  }, [pathname, posthog]);
+
+  return null;
 }
 
 function InitialLayout() {
@@ -70,9 +121,27 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
+  const content = (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <InitialLayout />
+      {posthog ? (
+        <PostHogIdentity>
+          <PostHogScreenTracking />
+          <InitialLayout />
+        </PostHogIdentity>
+      ) : (
+        <InitialLayout />
+      )}
     </ClerkProvider>
+  );
+
+  return posthog ? (
+    <PostHogProvider
+      client={posthog}
+      autocapture={{ captureScreens: false, captureTouches: true, propsToCapture: ["testID"] }}
+    >
+      {content}
+    </PostHogProvider>
+  ) : (
+    content
   );
 }

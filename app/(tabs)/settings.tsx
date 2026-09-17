@@ -16,6 +16,7 @@ import {
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "react-native-css";
 import { useClerk, useUser } from "@clerk/expo";
+import { usePostHog } from "posthog-react-native";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
@@ -39,6 +40,7 @@ interface SettingRowProps {
 export default function SettingsScreen() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const posthog = usePostHog();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Edit Profile States
@@ -72,6 +74,11 @@ export default function SettingsScreen() {
           lastName: lastNameInput.trim(),
         });
 
+        posthog.capture("profile_updated", {
+          updated_fields: lastNameInput.trim()
+            ? ["first_name", "last_name"]
+            : ["first_name"],
+        });
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success
         ).catch(() => {});
@@ -103,6 +110,8 @@ export default function SettingsScreen() {
             try {
               setIsSigningOut(true);
               await signOut();
+              posthog.capture("user_signed_out");
+              posthog.reset();
             } catch (err) {
               console.error("Sign out error:", err);
             } finally {
@@ -115,6 +124,7 @@ export default function SettingsScreen() {
   };
 
   const handleContactSupport = () => {
+    posthog.capture("support_contact_requested", { channel: "email" });
     Linking.openURL("mailto:support@recurrly.app?subject=Recurrly%20Support").catch(
       () => {
         Alert.alert(

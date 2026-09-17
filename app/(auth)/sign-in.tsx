@@ -12,6 +12,7 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "react-native-css";
 import { useRouter, Link } from "expo-router";
 import { useSignIn } from "@clerk/expo";
+import { usePostHog } from "posthog-react-native";
 import * as Haptics from "expo-haptics";
 import AuthHeader from "@/components/AuthHeader";
 import AuthInput from "@/components/AuthInput";
@@ -25,6 +26,7 @@ type AuthMode = "SIGN_IN" | "FORGOT_PASSWORD" | "ENTER_NEW_PASSWORD";
 export default function SignInScreen() {
   const router = useRouter();
   const { signIn, errors: clerkErrors, fetchStatus } = useSignIn();
+  const posthog = usePostHog();
 
   const [mode, setMode] = useState<AuthMode>("SIGN_IN");
   const [email, setEmail] = useState("");
@@ -101,6 +103,7 @@ export default function SignInScreen() {
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success
         ).catch(() => {});
+        posthog.capture("user_signed_in", { method: "password" });
         await signIn.finalize({
           navigate: () => {
             router.replace("/");
@@ -153,6 +156,7 @@ export default function SignInScreen() {
         return;
       }
 
+      posthog.capture("password_reset_requested");
       setInfoMessage(`We've sent a password reset code to ${email.trim()}.`);
       setMode("ENTER_NEW_PASSWORD");
     } catch (err) {
@@ -204,6 +208,8 @@ export default function SignInScreen() {
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success
         ).catch(() => {});
+        posthog.capture("password_reset_completed");
+        posthog.capture("user_signed_in", { method: "password_reset" });
         await signIn.finalize({
           navigate: () => {
             router.replace("/");

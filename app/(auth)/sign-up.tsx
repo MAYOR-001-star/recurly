@@ -12,6 +12,7 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "react-native-css";
 import { useRouter, Link } from "expo-router";
 import { useSignUp } from "@clerk/expo";
+import { usePostHog } from "posthog-react-native";
 import * as Haptics from "expo-haptics";
 import AuthHeader from "@/components/AuthHeader";
 import AuthInput from "@/components/AuthInput";
@@ -25,6 +26,7 @@ type SignUpStep = "FORM" | "VERIFY_CODE";
 export default function SignUpScreen() {
   const router = useRouter();
   const { signUp, errors: clerkErrors, fetchStatus } = useSignUp();
+  const posthog = usePostHog();
 
   const [step, setStep] = useState<SignUpStep>("FORM");
   const [fullName, setFullName] = useState("");
@@ -132,6 +134,7 @@ export default function SignUpScreen() {
         return;
       }
 
+      posthog.capture("account_registration_started");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
         () => {}
       );
@@ -178,6 +181,7 @@ export default function SignUpScreen() {
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success
         ).catch(() => {});
+        posthog.capture("account_registered");
         await signUp.finalize({
           navigate: () => {
             router.replace("/");
@@ -211,6 +215,7 @@ export default function SignUpScreen() {
         setGeneralError(getFriendlyErrorMessage(error));
         return;
       }
+      posthog.capture("verification_code_resent");
       setResendCooldown(30);
       setInfoMessage("A new verification code has been sent to your email.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(

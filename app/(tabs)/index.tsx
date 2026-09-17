@@ -12,16 +12,21 @@ import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import {useState} from "react";
 import {useUser} from "@clerk/expo";
+import {usePostHog} from "posthog-react-native";
 
 const SafeAreaView = styled(RNSafeAreaView);
 
 export default function App() {
     const {user} = useUser();
+    const posthog = usePostHog();
     const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<string | null>(null);
     const idChecker = (currentId: string) => {
-        setExpandedSubscriptionId(prev =>
-            prev === currentId ? null : currentId
-        );
+        const isExpanded = expandedSubscriptionId !== currentId;
+        posthog.capture("subscription_details_toggled", {
+            subscription_id: currentId,
+            is_expanded: isExpanded,
+        });
+        setExpandedSubscriptionId(isExpanded ? currentId : null);
     };
 
     const displayName = user?.firstName || user?.fullName || HOME_USER.name;
