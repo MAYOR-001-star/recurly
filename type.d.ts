@@ -24,6 +24,7 @@ declare global {
         price: number;
         currency?: string;
         billing: string;
+        frequency?: string;
         renewalDate?: string;
         color?: string;
     }
@@ -50,6 +51,9 @@ declare global {
 
     interface ListHeadingProps {
         title: string;
+        onPress?: () => void;
+        showAction?: boolean;
+        actionText?: string;
     }
 }
 

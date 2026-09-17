@@ -16,7 +16,9 @@ import {
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 import { styled } from "react-native-css";
 import { useClerk, useUser } from "@clerk/expo";
+import { usePostHog } from "posthog-react-native";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import dayjs from "dayjs";
 import { colors } from "@/constants/theme";
@@ -39,7 +41,9 @@ interface SettingRowProps {
 export default function SettingsScreen() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const posthog = usePostHog();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Edit Profile States
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -54,6 +58,113 @@ export default function SettingsScreen() {
     setEditError(null);
     setEditModalVisible(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  };
+
+  const uploadProfileImage = async (base64Data: string) => {
+    try {
+      setIsUploadingImage(true);
+      if (user) {
+        await user.setProfileImage({ file: base64Data });
+        await user.reload();
+        posthog.capture("profile_image_updated");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
+    } catch (err) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      Alert.alert("Upload Failed", getFriendlyErrorMessage(err));
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+
+    Alert.alert(
+      "Profile Picture",
+      "Choose an option to update your photo",
+      [
+        {
+          text: "Choose from Library",
+          onPress: async () => {
+            try {
+              const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+              if (status !== "granted") {
+                Alert.alert(
+                  "Permission required",
+                  "Please grant permission to access your photo library to choose a profile picture."
+                );
+                return;
+              }
+
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,
+                base64: true,
+              });
+
+              if (!result.canceled && result.assets && result.assets[0].base64) {
+                await uploadProfileImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+              }
+            } catch (err) {
+              Alert.alert("Error", getFriendlyErrorMessage(err));
+            }
+          },
+        },
+        {
+          text: "Take Photo",
+          onPress: async () => {
+            try {
+              const { status } = await ImagePicker.requestCameraPermissionsAsync();
+              if (status !== "granted") {
+                Alert.alert(
+                  "Permission required",
+                  "Please grant permission to use your camera to take a profile picture."
+                );
+                return;
+              }
+
+              const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,
+                base64: true,
+              });
+
+              if (!result.canceled && result.assets && result.assets[0].base64) {
+                await uploadProfileImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+              }
+            } catch (err) {
+              Alert.alert("Error", getFriendlyErrorMessage(err));
+            }
+          },
+        },
+        ...(user?.imageUrl
+          ? [
+              {
+                text: "Remove Photo",
+                style: "destructive" as const,
+                onPress: async () => {
+                  try {
+                    setIsUploadingImage(true);
+                    await user?.setProfileImage({ file: null });
+                    await user?.reload();
+                    posthog.capture("profile_image_removed");
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                  } catch (err) {
+                    Alert.alert("Error", getFriendlyErrorMessage(err));
+                  } finally {
+                    setIsUploadingImage(false);
+                  }
+                },
+              },
+            ]
+          : []),
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
   };
 
   const handleSaveProfile = async () => {
@@ -72,6 +183,11 @@ export default function SettingsScreen() {
           lastName: lastNameInput.trim(),
         });
 
+        posthog.capture("profile_updated", {
+          updated_fields: lastNameInput.trim()
+            ? ["first_name", "last_name"]
+            : ["first_name"],
+        });
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success
         ).catch(() => {});
@@ -103,6 +219,8 @@ export default function SettingsScreen() {
             try {
               setIsSigningOut(true);
               await signOut();
+              posthog.capture("user_signed_out");
+              posthog.reset();
             } catch (err) {
               console.error("Sign out error:", err);
             } finally {
@@ -115,6 +233,7 @@ export default function SettingsScreen() {
   };
 
   const handleContactSupport = () => {
+    posthog.capture("support_contact_requested", { channel: "email" });
     Linking.openURL("mailto:support@recurrly.app?subject=Recurrly%20Support").catch(
       () => {
         Alert.alert(
@@ -201,10 +320,25 @@ export default function SettingsScreen() {
           ) : (
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-4 flex-1 pr-2">
-                <Image
-                  source={avatarSource}
-                  className="size-16 rounded-full border-2 border-accent"
-                />
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handlePickImage}
+                  disabled={isUploadingImage}
+                  className="relative"
+                  accessibilityLabel="Change profile picture"
+                >
+                  <Image
+                    source={avatarSource}
+                    className="size-16 rounded-full border-2 border-accent"
+                  />
+                  <View className="absolute bottom-0 right-0 size-6 rounded-full bg-primary items-center justify-center border-2 border-card">
+                    {isUploadingImage ? (
+                      <ActivityIndicator size="small" color="#ffffff" style={{ transform: [{ scale: 0.6 }] }} />
+                    ) : (
+                      <Ionicons name="camera" size={12} color="#ffffff" />
+                    )}
+                  </View>
+                </TouchableOpacity>
                 <View className="flex-1">
                   <Text className="text-lg font-sans-bold text-primary">
                     {displayName}
@@ -353,6 +487,37 @@ export default function SettingsScreen() {
 
             {/* Modal Body */}
             <View className="py-4 gap-4">
+              {/* Avatar Section */}
+              <View className="items-center justify-center py-1">
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handlePickImage}
+                  disabled={isUploadingImage}
+                  className="relative items-center"
+                >
+                  <Image
+                    source={avatarSource}
+                    className="size-20 rounded-full border-2 border-accent"
+                  />
+                  <View className="absolute bottom-0 right-0 size-7 rounded-full bg-primary items-center justify-center border-2 border-card">
+                    {isUploadingImage ? (
+                      <ActivityIndicator size="small" color="#ffffff" style={{ transform: [{ scale: 0.6 }] }} />
+                    ) : (
+                      <Ionicons name="camera" size={14} color="#ffffff" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handlePickImage}
+                  disabled={isUploadingImage}
+                  className="mt-2"
+                >
+                  <Text className="text-xs font-sans-bold text-accent">
+                    {isUploadingImage ? "Uploading Photo..." : "Change Profile Photo"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {editError && (
                 <View className="rounded-2xl border border-destructive/20 bg-destructive/10 p-3">
                   <Text className="text-xs font-sans-semibold text-destructive">
