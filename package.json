@@ -59,7 +59,15 @@
     "typescript": "~5.9.2"
   },
   "overrides": {
-    "lightningcss": "1.30.1"
+    "lightningcss": "1.30.1",
+    "@clerk/react": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    },
+    "@clerk/shared": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   },
   "private": true
 }
