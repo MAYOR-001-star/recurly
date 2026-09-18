@@ -85,10 +85,11 @@ function InitialLayout() {
     if (!isLoaded) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inOnboarding = segments[0] === "onboarding";
 
-    if (!isSignedIn && !inAuthGroup) {
+    if (!isSignedIn && !inAuthGroup && !inOnboarding) {
       router.replace("/(auth)/sign-in");
-    } else if (isSignedIn && inAuthGroup) {
+    } else if (isSignedIn && (inAuthGroup || inOnboarding)) {
       router.replace("/(tabs)");
     }
   }, [isSignedIn, isLoaded, segments, router]);

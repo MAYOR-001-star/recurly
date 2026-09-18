@@ -197,3 +197,76 @@ export const ALL_SUBSCRIPTIONS: Subscription[] = [
 ];
 
 export const HOME_SUBSCRIPTIONS: Subscription[] = ALL_SUBSCRIPTIONS.slice(0, 4);
+
+export interface ChartBarData {
+  day: string;
+  value: number;
+  isHighlighted?: boolean;
+  label?: string;
+}
+
+export const INSIGHTS_CHART_DATA: ChartBarData[] = [
+  { day: "Mon", value: 36 },
+  { day: "Tue", value: 31 },
+  { day: "Wed", value: 23 },
+  { day: "Thr", value: 40, isHighlighted: true, label: "$40" },
+  { day: "Fri", value: 34 },
+  { day: "Sat", value: 21 },
+  { day: "Sun", value: 24 },
+];
+
+export const INSIGHTS_EXPENSES = {
+  label: "Expenses",
+  month: "March 2026",
+  amount: -424.63,
+  changePercentage: "+12%",
+};
+
+export interface HistoryItem {
+  id: string;
+  name: string;
+  icon: any;
+  date: string;
+  price: number;
+  frequency: string;
+  color: string;
+}
+
+export const INSIGHTS_HISTORY: HistoryItem[] = [
+  {
+    id: "history-claude",
+    name: "Claude",
+    icon: icons.claude,
+    date: "June 25, 12:00",
+    price: 9.84,
+    frequency: "per month",
+    color: "#f6cf46",
+  },
+  {
+    id: "history-canva",
+    name: "Canva",
+    icon: icons.canva,
+    date: "June 30, 16:00",
+    price: 43.89,
+    frequency: "per month",
+    color: "#8fd1bd",
+  },
+  {
+    id: "history-github",
+    name: "GitHub",
+    icon: icons.github,
+    date: "July 01, 10:15",
+    price: 19.99,
+    frequency: "per month",
+    color: "#e8def8",
+  },
+  {
+    id: "history-figma",
+    name: "Figma",
+    icon: icons.figma,
+    date: "July 05, 14:00",
+    price: 15.0,
+    frequency: "per month",
+    color: "#ffd7be",
+  },
+];
