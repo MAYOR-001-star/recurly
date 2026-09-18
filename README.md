@@ -1,50 +1,134 @@
-# Welcome to your Expo app 👋
+# Recurrly 💳
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Recurrly** is a modern subscription tracker and recurring expense manager built with **React Native**, **Expo SDK 54**, **Expo Router**, **NativeWind (Tailwind CSS)**, **Clerk Authentication**, and **PostHog Analytics**.
 
-## Get started
+Designed with a warm, minimalist aesthetic, Recurrly helps users visualize monthly spending, manage upcoming renewals, and stay in control of digital subscriptions.
 
-1. Install dependencies
+---
 
+## 📱 Features
+
+- **📊 Comprehensive Dashboard**: Monitor total recurring balance, upcoming renewal dates, and recent subscription activity in real time.
+- **🔍 Search & Filter**: Instant search by subscription name, plan, or category (Design, Dev Tools, AI Tools, Entertainment, Productivity, etc.).
+- **📈 Monthly Insights & Visual Charts**: Interactive weekly spending bar chart with daily breakdowns, month-over-month expense comparisons, and detailed transaction history.
+- **➕ Quick Add Modal**: Create custom subscriptions with name, price, monthly/yearly billing frequency, and category tag selection.
+- **🔐 Secure Authentication**: Fast sign-in, sign-up, and OAuth flows powered by [Clerk](https://clerk.com/) with biometric/secure token caching via `expo-secure-store`.
+- **👤 Profile Management**: Update user display details and change profile avatars with camera or photo library using `expo-image-picker`.
+- **📡 Observability & Analytics**: In-app event telemetry and user journey tracking with [PostHog](https://posthog.com/).
+- **📳 Haptic Feedback**: Tactile interactions powered by `expo-haptics`.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Expo SDK 54](https://docs.expo.dev/) (New Architecture enabled)
+- **Routing**: [Expo Router v6](https://docs.expo.dev/router/introduction/) (File-based navigation with tabs)
+- **Language**: TypeScript
+- **Styling**: [NativeWind v5](https://www.nativewind.dev/) & [Tailwind CSS v4](https://tailwindcss.com/)
+- **Authentication**: [@clerk/expo](https://clerk.com/docs/references/expo/overview)
+- **Storage**: `expo-secure-store`
+- **Analytics**: `posthog-react-native`
+- **Icons**: `@expo/vector-icons` (Ionicons)
+- **Build System**: EAS Build (Expo Application Services)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v20+ recommended)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [Expo Go](https://expo.dev/go) app on your mobile device, or an iOS Simulator / Android Emulator
+- EAS CLI (optional, for cloud builds):
+  ```bash
+  npm install -g eas-cli
+  ```
+
+### Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/MAYOR-001-star/recurly.git
+   cd recurly
+   ```
+
+2. **Install dependencies**:
    ```bash
    npm install
    ```
 
-2. Start the app
-
+3. **Configure Environment Variables**:
+   Create a `.env` file in the root directory (or copy from `.env.example`):
    ```bash
-   npx expo start
+   cp .env.example .env
    ```
 
-In the output, you'll find options to open the app in a
+   Add your API keys:
+   ```env
+   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key
+   POSTHOG_PROJECT_TOKEN=phc_your_posthog_project_token
+   POSTHOG_HOST=https://us.i.posthog.com
+   ```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 💻 Running Locally
 
-## Get a fresh project
-
-When you're ready, run:
+Start the Expo development server:
 
 ```bash
-npm run reset-project
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+In the terminal output, choose your target platform:
+- Press `a` to run on an **Android Emulator** or connected Android device.
+- Press `i` to run on an **iOS Simulator**.
+- Scan the displayed QR code with the **Expo Go** app on your phone.
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📦 Building with EAS
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+To create a production Android build:
 
-## Join the community
+```bash
+eas build --platform android --profile production
+```
 
-Join our community of developers creating universal apps.
+To create an internal preview build (APK for testing):
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+eas build --platform android --profile preview
+```
+
+---
+
+## 📂 Project Structure
+
+```text
+├── app/
+│   ├── (auth)/          # Authentication screens (Sign In, Sign Up, Welcome)
+│   ├── (tabs)/          # Main tab navigation
+│   │   ├── _layout.tsx  # Floating pill navigation bar
+│   │   ├── index.tsx    # Dashboard / Home Screen
+│   │   ├── insights.tsx # Monthly spending charts & history
+│   │   ├── settings.tsx # User profile, avatar picker, and settings
+│   │   └── subscriptions.tsx # Full searchable subscription list
+│   ├── _layout.tsx      # Root layout, ClerkProvider, PostHogProvider
+│   └── onboarding.tsx   # Intro onboarding screen
+├── assets/              # Fonts, branding, app icons, and logos
+├── components/          # Reusable UI components & modals
+├── constants/           # Color palettes, theme tokens, and mock data
+├── lib/                 # Utility functions and helper methods
+├── app.config.js        # Dynamic Expo configuration & EAS project linking
+├── app.json             # Static Expo manifest & plugin definitions
+├── eas.json             # EAS Build & Submit configuration profiles
+└── global.css           # Tailwind / NativeWind design tokens
+```
+
+---
+
+## 📄 License
+
+This project is private and intended for personal use and portfolio demonstration.
